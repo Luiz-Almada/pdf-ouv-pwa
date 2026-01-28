@@ -1,0 +1,310 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum TipoManifestacao {
+  DENUNCIA
+  RECLAMACAO
+  SUGESTAO
+  ELOGIO
+  SOLICITACAO
+  INFORMACAO
+}
+
+enum StatusManifestacao {
+  RECEBIDA
+  EM_ANALISE
+  EM_ATENDIMENTO
+  RESPONDIDA
+  FINALIZADA
+  ARQUIVADA
+}
+
+enum PrioridadeManifestacao {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum TipoAnexo {
+  DOCUMENTO
+  IMAGEM
+  AUDIO
+  VIDEO
+  OUTRO
+}
+
+// ============================================
+// MODELOS PRINCIPAIS
+// ============================================
+
+model Manifestacao {
+  id        String   @id @default(uuid())
+  protocolo String   @unique
+  
+  // Dados da manifestação
+  assunto   String   @db.VarChar(120)
+  conteudo  String   @db.Text
+  anonimo   Boolean  @default(false)
+  
+  // Classificação
+  tipo       TipoManifestacao?
+  prioridade PrioridadeManifestacao @default(MEDIA)
+  status     StatusManifestacao     @default(RECEBIDA)
+  
+  // Metadados
+  orgaoResponsavel String?  @db.VarChar(255)
+  categoria        String?  @db.VarChar(100)
+  tags             String[] @default([])
+  
+  // Dados do cidadão (se não for anônimo)
+  cidadaoId String?
+  cidadao   Cidadao? @relation(fields: [cidadaoId], references: [id])
+  
+  // Relacionamentos
+  anexos        Anexo[]
+  tramitacoes   Tramitacao[]
+  respostas     Resposta[]
+  interacoes    Interacao[]
+  classificacao ClassificacaoIA?
+  
+  // Auditoria
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  // SLA
+  prazoResposta DateTime?
+  respondidaEm  DateTime?
+  
+  @@index([protocolo])
+  @@index([status])
+  @@index([tipo])
+  @@index([cidadaoId])
+  @@index([createdAt])
+  @@map("manifestacoes")
+}
+
+model Cidadao {
+  id String @id @default(uuid())
+  
+  // Dados pessoais
+  nome      String  @db.VarChar(255)
+  cpf       String? @unique @db.VarChar(14)
+  email     String  @unique @db.VarChar(255)
+  telefone  String? @db.VarChar(20)
+  
+  // Endereço
+  endereco     String? @db.VarChar(255)
+  cidade       String? @db.VarChar(100)
+  estado       String? @db.VarChar(2)
+  cep          String? @db.VarChar(9)
+  
+  // Autenticação (opcional - se implementar login)
+  senha        String? @db.VarChar(255)
+  emailVerificado Boolean @default(false)
+  
+  // Relacionamentos
+  manifestacoes Manifestacao[]
+  interacoes    Interacao[]
+  
+  // Auditoria
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  @@index([email])
+  @@index([cpf])
+  @@map("cidadaos")
+}
+
+model Anexo {
+  id String @id @default(uuid())
+  
+  // Dados do arquivo
+  nomeOriginal String      @db.VarChar(255)
+  nomeArmazenado String    @db.VarChar(255)
+  caminho      String      @db.VarChar(500)
+  tipo         TipoAnexo
+  mimeType     String      @db.VarChar(100)
+  tamanho      Int         // em bytes
+  
+  // Metadados
+  descricao    String?     @db.Text
+  
+  // Relacionamento
+  manifestacaoId String
+  manifestacao   Manifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  
+  @@index([manifestacaoId])
+  @@map("anexos")
+}
+
+model Tramitacao {
+  id String @id @default(uuid())
+  
+  // Dados da tramitação
+  statusAnterior StatusManifestacao
+  statusNovo     StatusManifestacao
+  observacao     String?            @db.Text
+  
+  // Responsável pela tramitação
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+  
+  // Relacionamento
+  manifestacaoId String
+  manifestacao   Manifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  
+  @@index([manifestacaoId])
+  @@index([createdAt])
+  @@map("tramitacoes")
+}
+
+model Resposta {
+  id String @id @default(uuid())
+  
+  // Conteúdo da resposta
+  conteudo String @db.Text
+  publico  Boolean @default(true)
+  
+  // Responsável
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  
+  // Relacionamento
+  manifestacaoId String
+  manifestacao   Manifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([manifestacaoId])
+  @@map("respostas")
+}
+
+model Interacao {
+  id String @id @default(uuid())
+  
+  // Tipo de interação
+  tipo       String   @db.VarChar(50) // comentario, acompanhamento, avaliacao
+  conteudo   String   @db.Text
+  
+  // Avaliação (opcional)
+  avaliacao  Int?     // 1 a 5 estrelas
+  
+  // Relacionamentos
+  manifestacaoId String
+  manifestacao   Manifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+  
+  cidadaoId String?
+  cidadao   Cidadao? @relation(fields: [cidadaoId], references: [id])
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  
+  @@index([manifestacaoId])
+  @@map("interacoes")
+}
+
+model ClassificacaoIA {
+  id String @id @default(uuid())
+  
+  // Resultado da classificação
+  tipoSugerido       TipoManifestacao
+  prioridadeSugerida PrioridadeManifestacao
+  orgaoSugerido      String?                @db.VarChar(255)
+  categoriaSugerida  String?                @db.VarChar(100)
+  tagsSugeridas      String[]               @default([])
+  
+  // Confiança da IA
+  confianca Float // 0.0 a 1.0
+  
+  // Metadados
+  modeloUtilizado String  @db.VarChar(100)
+  versaoModelo    String  @db.VarChar(50)
+  
+  // Relacionamento (1:1)
+  manifestacaoId String       @unique
+  manifestacao   Manifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  
+  @@map("classificacoes_ia")
+}
+
+model Usuario {
+  id String @id @default(uuid())
+  
+  // Dados pessoais
+  nome       String  @db.VarChar(255)
+  email      String  @unique @db.VarChar(255)
+  cpf        String  @unique @db.VarChar(14)
+  
+  // Autenticação
+  senha      String  @db.VarChar(255)
+  ativo      Boolean @default(true)
+  
+  // Perfil
+  perfil     String  @db.VarChar(50) // admin, atendente, gestor
+  orgao      String? @db.VarChar(255)
+  
+  // Relacionamentos
+  tramitacoes Tramitacao[]
+  respostas   Resposta[]
+  
+  // Auditoria
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  @@index([email])
+  @@map("usuarios")
+}
+
+// ============================================
+// MODELOS DE AUDITORIA E LOGS
+// ============================================
+
+model LogAcesso {
+  id String @id @default(uuid())
+  
+  // Dados do acesso
+  usuarioId String?
+  ip        String  @db.VarChar(45)
+  userAgent String  @db.Text
+  rota      String  @db.VarChar(255)
+  metodo    String  @db.VarChar(10)
+  statusCode Int
+  
+  // Timing
+  tempoResposta Int // em ms
+  
+  // Auditoria
+  createdAt DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([usuarioId])
+  @@map("logs_acesso")
+}
