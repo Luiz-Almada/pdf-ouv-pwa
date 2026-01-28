@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 
 // Schema alinhado ao formulário REAL
 const ManifestacaoSchema = z.object({
-  assunto: z.string().min(3, "Assunto obrigatório"),
-  conteudo: z.string().min(5, "Conteúdo obrigatório"),
+  assunto: z.string().min(10, "O assunto é obrigatório e deve ter ao menos 10 caracteres."),
+  conteudo: z.string().min(20, "A descrição da manifestação é obrigatória."),
   anonimo: z.boolean(),
 });
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          erro: "Dados inválidos",
+          erro: error.issues[0]?.message ?? "Dados inválidos",
           detalhes: error.issues,
         },
         { status: 400 }

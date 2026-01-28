@@ -6,8 +6,11 @@ import FileUploader from "@/components/upload/FileUploader";
 import AudioTranscriber, {
   AudioTranscriberHandle,
 } from "@/components/audio/AudioTranscriber";
+import ManifestacaoSucesso from "@/components/ManifestacaoSucesso";
+import { useMounted } from "@/hooks/useMounted";
 
 export default function ManifestacaoPage() {
+  const mounted = useMounted();
   const [assunto, setAssunto] = useState("");
   const [conteudo, setConteudo] = useState("");
 
@@ -28,6 +31,7 @@ export default function ManifestacaoPage() {
 
   const transcriberRef = useRef<AudioTranscriberHandle | null>(null);
 
+  if (!mounted) return null;
   function handleAudioChange(blob: Blob) {
     if (blob.size > 5_000_000) {
       setErro("Áudio muito grande");
@@ -87,49 +91,26 @@ export default function ManifestacaoPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <section className="w-full max-w-md bg-background p-6 rounded shadow border">
-        <h1 className="text-xl font-semibold mb-4">
-          Registrar Manifestação
-        </h1>
+        {!protocolo && (
+          <h1 className="text-xl font-semibold mb-4">
+            Registrar Manifestação
+          </h1>
+        )}
 
         {protocolo ? (
-          <div className="rounded border border-green-600 bg-green-950 text-green-100 p-4 space-y-4">
-            <div>
-              <p className="font-semibold text-lg">
-                Manifestação registrada com sucesso!
-              </p>
-
-              <p className="mt-1">
-                <strong>Protocolo:</strong> {protocolo}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  // futuro: rota real do Participa DF
-                  window.location.href = "/meus-registros";
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-              >
-                Acompanhar meus registros
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setProtocolo(null);
-                }}
-                className="w-full border border-gray-400 text-gray-200 py-2 rounded hover:bg-gray-800"
-              >
-                Nova manifestação
-              </button>
-            </div>
-          </div>
+          <ManifestacaoSucesso
+            protocolo={protocolo}
+            novaManifestacao={() => setProtocolo(null)}
+          />
         ) : (
           <>
             {/* ASSUNTO */}
             <label className="block mb-1 font-medium">Assunto</label>
+            {assunto.trim().length > 0 && assunto.trim().length < 10 && (
+              <p className="text-sm text-red-600 mt-1">
+                O assunto deve ter pelo menos 10 caracteres.
+              </p>
+            )}
             <textarea
               value={assunto}
               onChange={(e) => setAssunto(e.target.value)}
@@ -169,6 +150,11 @@ export default function ManifestacaoPage() {
             <label className="block mt-4 mb-1 font-medium">
               Descreva sua manifestação
             </label>
+            {conteudo.trim().length > 0 && conteudo.trim().length < 20 && (
+              <p className="text-sm text-red-600 mt-1">
+                A descrição deve ter pelo menos 20 caracteres.
+              </p>
+            )}
             <textarea
               value={conteudo}
               onChange={(e) => setConteudo(e.target.value)}
@@ -250,7 +236,8 @@ export default function ManifestacaoPage() {
               onClick={enviarManifestacao}
               disabled={
                 carregando ||
-                (!assunto && !conteudo && !audioBlob && arquivos.length === 0)
+                assunto.trim().length < 10 ||
+                conteudo.trim().length < 20
               }
               className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50"
             >
