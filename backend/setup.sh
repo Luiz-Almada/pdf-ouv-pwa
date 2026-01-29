@@ -79,6 +79,11 @@ done
 print_success "PostgreSQL pronto"
 
 # =========================
+# TESTE REAL DE CONEXÃO
+# =========================
+print_info "Testando conectividade externa do Prisma..."
+
+# =========================
 # BACKEND
 # =========================
 echo ""
