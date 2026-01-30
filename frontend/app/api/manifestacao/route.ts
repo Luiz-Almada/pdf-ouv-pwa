@@ -13,19 +13,19 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    // 🔹 extrai campos textuais
+    // extrai campos textuais
     const assunto = formData.get("assunto");
     const conteudo = formData.get("conteudo");
     const anonimoRaw = formData.get("anonimo");
 
-    // 🔹 valida tipos básicos
+    // valida tipos básicos
     const dados = ManifestacaoSchema.parse({
       assunto,
       conteudo,
       anonimo: anonimoRaw === "true",
     });
 
-    // 🔹 arquivos (opcionais)
+    // arquivos (opcionais)
     const audio = formData.get("audio"); // File | null
     const anexos = formData.getAll("anexos"); // File[]
 
