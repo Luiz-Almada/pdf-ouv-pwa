@@ -93,7 +93,7 @@ export default function StepAnexos({
           <label className="block text-sm font-medium text-card-foreground">
             Anexar arquivos (opcional)
           </label>
-          <span className="text-xs text-muted-foreground">Max 25MB por arquivo</span>
+          <span className="text-xs text-muted-foreground">Máx. 25MB por arquivo</span>
         </div>
 
         <input
