@@ -175,7 +175,7 @@ export default function StepAnexos({
       {/* Selected Files */}
       {data.anexos.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-card-foreground uppercase tracking-wider">
+          <h3 className="text-sm font-medium text-card-foreground tracking-wider">
             Arquivos selecionados
           </h3>
           <ul className="space-y-2">
@@ -205,10 +205,11 @@ export default function StepAnexos({
                       anexos: data.anexos.filter((_, i) => i !== index),
                     })
                   }
-                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                   aria-label="Remover arquivo"
                 >
                   <X className="h-4 w-4" />
+                  <span className="text-xs">Excluir</span>
                 </button>
               </li>
             ))}
