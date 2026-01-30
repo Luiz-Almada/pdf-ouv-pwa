@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Mic, Square, Trash2, AudioWaveform } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   onRecorded: (blob: Blob) => void;
@@ -26,6 +28,12 @@ export default function AudioRecorder({ onRecorded }: Props) {
     }
   }, [gravando, inicioGravacao]);
 
+  function formatTime(seconds: number) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
   async function iniciarGravacao() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -50,11 +58,8 @@ export default function AudioRecorder({ onRecorded }: Props) {
       recorder.start();
       setInicioGravacao(Date.now());
       setGravando(true);
-    } catch (err) {
-      alert(
-        "Não foi possível acessar o microfone. Verifique se há um microfone disponível e se a permissão foi concedida."
-      );
-      console.error("Erro ao acessar microfone:", err);
+    } catch {
+      toast.error("Nao foi possivel acessar o microfone. Verifique as permissoes.");
     }
   }
 
@@ -64,55 +69,85 @@ export default function AudioRecorder({ onRecorded }: Props) {
   }
 
   return (
-    <div className="border rounded p-4 mt-4">
-      <p className="font-medium mb-2">Gravação de áudio</p>
+    <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+        <AudioWaveform className="h-4 w-4" />
+        Gravação de áudio (opcional)
+      </div>
 
-      {!gravando ? (
-        <button
-          type="button"
-          onClick={iniciarGravacao}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Iniciar gravação
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={pararGravacao}
-          className="bg-red-600 text-white px-4 py-2 rounded"
-        >
-          Parar gravação
-        </button>
-      )}
+      <div className="flex items-center gap-3">
+        {/* Indicador de gravação/barra de progresso */}
+        <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+          {gravando && (
+            <div
+              className="h-full bg-destructive animate-pulse"
+              style={{ width: `${Math.min((timeElapsed / 120) * 100, 100)}%` }}
+            />
+          )}
+        </div>
 
-      {gravando && inicioGravacao && (
-        <p className="text-red-500 text-sm mt-2 flex items-center gap-2">
-          <span className="animate-pulse">🔴</span>
-          Gravando há {timeElapsed}s
+        {/* Tempo */}
+        <span className="text-sm text-muted-foreground font-mono w-12 text-right">
+          {formatTime(timeElapsed)}
+        </span>
+
+        {/* Botão Gravar/Parar */}
+        {!gravando ? (
+          <button
+            type="button"
+            onClick={iniciarGravacao}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors"
+          >
+            <Mic className="h-4 w-4" />
+            Iniciar gravação
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={pararGravacao}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors"
+          >
+            <Square className="h-4 w-4" />
+            Parar gravação
+          </button>
+        )}
+      </div>
+
+      {gravando && (
+        <p className="flex items-center gap-2 text-sm text-destructive">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+          </span>
+          Gravando...
         </p>
       )}
 
       {audioURL && (
-        <audio controls className="w-full mt-4">
-          <source src={audioURL} type="audio/webm" />
-          Seu navegador não suporta áudio.
-        </audio>
-      )}
+        <div className="space-y-3 pt-2">
+          <audio controls className="w-full h-10">
+            <source src={audioURL} type="audio/webm" />
+            Seu navegador não suporta ou não pode reproduzir áudio.
+          </audio>
 
-      {audioURL && (
-        <div className="mt-2 flex gap-2">
           <button
             type="button"
             onClick={() => {
               setAudioURL(null);
+              setTimeElapsed(0);
               onRecorded(new Blob());
             }}
-            className="text-sm text-red-600 cursor-pointer hover:text-red-800"
+            className="inline-flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 transition-colors"
           >
+            <Trash2 className="h-4 w-4" />
             Excluir áudio
           </button>
         </div>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        Caso prefira, você pode gravar um áudio relatando o problema em vez de digitar.
+      </p>
     </div>
   );
 }
