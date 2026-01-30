@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListCidadaoDto } from './dto/list-cidadaos.dto';
+import { LoginCidadaoDto } from './dto/login-cidadao.dto';
 
 const cidadaoSelect = {
   id: true,
@@ -13,6 +14,25 @@ const cidadaoSelect = {
 @Injectable()
 export class CidadaoService {
   constructor(private prisma: PrismaService) {}
+
+  async findOrCreate(dto: LoginCidadaoDto) {
+    const cidadao = await this.prisma.cidadao.findUnique({
+      where: { email: dto.email },
+      select: cidadaoSelect,
+    });
+
+    if (cidadao) {
+      return cidadao;
+    }
+
+    return this.prisma.cidadao.create({
+      data: {
+        nome: dto.nome,
+        email: dto.email,
+      },
+      select: cidadaoSelect,
+    });
+  }
 
   async findByEmail(email: string) {
     return this.prisma.cidadao.findUnique({

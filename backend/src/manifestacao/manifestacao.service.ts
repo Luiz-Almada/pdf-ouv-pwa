@@ -238,6 +238,14 @@ export class ManifestacaoService {
         },
         respostas: {
           orderBy: { createdAt: 'desc' },
+          include: {
+            usuario: {
+              select: {
+                nome: true,
+                email: true,
+              },
+            },
+          },
         },
         cidadao: true,
         classificacao: true,
