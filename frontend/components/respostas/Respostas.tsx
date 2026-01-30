@@ -1,5 +1,6 @@
 import RespostaItem from "./RespostaItem";
 import { RespostaManifestacao } from "./types";
+import { MessageSquare, Inbox } from "lucide-react";
 
 type Props = {
   respostas: RespostaManifestacao[];
@@ -7,15 +8,21 @@ type Props = {
 
 export default function Respostas({ respostas }: Props) {
   return (
-    <div className="mt-8">
-      <h2 className="font-medium mb-4">
+    <div>
+      <h2 className="font-medium text-card-foreground mb-4 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-primary" />
         Respostas do órgão
       </h2>
 
       {respostas.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          Ainda não há respostas para esta manifestação.
-        </p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+            <Inbox className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Ainda não há respostas para esta manifestação.
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           {respostas.map((resposta) => (
