@@ -10,7 +10,7 @@ import { Mic, MicOff, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props = {
   data: ManifestacaoForm;
-  onChange: (data: ManifestacaoForm) => void;
+  onChange: (data: Partial<ManifestacaoForm>) => void;
   onNext: () => void;
 };
 
@@ -24,7 +24,7 @@ export default function StepDados({ data, onChange, onNext }: Props) {
     campo: K,
     valor: ManifestacaoForm[K]
   ) {
-    onChange({ ...data, [campo]: valor });
+    onChange({ [campo]: valor });
   }
 
   const assuntoValido = data.assunto.trim().length >= 10;
@@ -52,7 +52,7 @@ export default function StepDados({ data, onChange, onNext }: Props) {
           value={data.assunto}
           onChange={(e) => atualizar("assunto", e.target.value)}
           rows={2}
-          className="w-full border border-border rounded-xl p-3 resize-none bg-card text-card-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          className="w-full border border-border rounded-xl p-3 resize-none bg-card text-card-foreground placeholder:text-muted-foreground placeholder:opacity-100 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           placeholder="Resumo curto da manifestação"
         />
         <div className="flex items-center justify-between">
@@ -111,7 +111,7 @@ export default function StepDados({ data, onChange, onNext }: Props) {
           value={data.conteudo}
           onChange={(e) => atualizar("conteudo", e.target.value)}
           rows={5}
-          className="w-full border border-border rounded-xl p-3 resize-none bg-card text-card-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          className="w-full border border-border rounded-xl p-3 resize-none bg-card text-card-foreground placeholder:text-muted-foreground placeholder:opacity-100 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           placeholder="Descreva o ocorrido com o máximo de informações possíveis."
         />
         <div className="flex items-center justify-between">
@@ -162,7 +162,10 @@ export default function StepDados({ data, onChange, onNext }: Props) {
 
       {/* Audio Recording Section */}
       <AudioRecorder
-        onRecorded={(blob) => atualizar("audioBlob", blob)}
+        onRecorded={(blob, mimeType) => {
+          atualizar("audioBlob", blob);
+          atualizar("audioMimeType", mimeType);
+        }}
       />
 
       <AudioTranscriber

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ManifestacaoForm } from "../page";
 import {
   Upload,
@@ -10,15 +11,23 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
   data: ManifestacaoForm;
-  onChange: (data: ManifestacaoForm) => void;
+  onChange: (data: Partial<ManifestacaoForm>) => void;
   onBack: () => void;
   onNext: () => void;
+};
+
+type EnderecoResumo = {
+  logradouro?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
 };
 
 export default function StepAnexos({
@@ -27,6 +36,8 @@ export default function StepAnexos({
   onBack,
   onNext,
 }: Props) {
+  const [endereco, setEndereco] = useState<EnderecoResumo | null>(null);
+  const [loadingEndereco, setLoadingEndereco] = useState(false);
   function adicionarArquivos(files: FileList | null) {
     if (!files) return;
 
@@ -39,7 +50,6 @@ export default function StepAnexos({
     });
 
     onChange({
-      ...data,
       anexos: [...data.anexos, ...newFiles],
     });
   }
@@ -48,10 +58,9 @@ export default function StepAnexos({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         onChange({
-          ...data,
           localizacao: {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
+            lat: pos.coords.latitude.toString(),
+            lng: pos.coords.longitude.toString(),
           },
         });
         toast.success("Localização capturada com sucesso!");
@@ -76,6 +85,43 @@ export default function StepAnexos({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  useEffect(() => {
+    async function buscarEndereco() {
+      if (!data.localizacao) return;
+
+      setLoadingEndereco(true);
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${data.localizacao.lat}&lon=${data.localizacao.lng}&format=json`
+        );
+        const json = await res.json();
+
+        const addr = json.address || {};
+
+        setEndereco({
+          logradouro:
+            addr.road ||
+            addr.neighbourhood ||
+            addr.suburb,
+          bairro: addr.neighbourhood,
+          cidade: addr.city || addr.town || addr.village,
+          uf: addr.state_code || addr.state,
+        });
+      } catch {
+        setEndereco(null);
+      } finally {
+        setLoadingEndereco(false);
+      }
+    }
+
+    buscarEndereco();
+  }, [data.localizacao]);
+
+  const mapaUrl =
+    data.localizacao &&
+    `https://www.openstreetmap.org/?mlat=${data.localizacao.lat}&mlon=${data.localizacao.lng}#map=16/${data.localizacao.lat}/${data.localizacao.lng}`;
+
   return (
     <div className="space-y-6">
       <div>
@@ -87,7 +133,7 @@ export default function StepAnexos({
         </p>
       </div>
 
-      {/* File Upload Area */}
+      {/* Upload de arquivos */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-card-foreground">
@@ -116,7 +162,7 @@ export default function StepAnexos({
         </label>
       </div>
 
-      {/* Camera Capture */}
+      {/* Câmera */}
       <div className="space-y-3">
         <label className="flex items-center gap-2 text-sm font-medium text-card-foreground">
           <Camera className="h-4 w-4" />
@@ -141,7 +187,7 @@ export default function StepAnexos({
         </div>
       </div>
 
-      {/* Location */}
+      {/* Localização */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-card-foreground">
           Localização do ocorrido (opcional)
@@ -159,20 +205,41 @@ export default function StepAnexos({
             `}
           >
             <MapPin className="h-4 w-4" />
-            {data.localizacao ? "Localizacao adicionada" : "Usar localizacao atual"}
+            {data.localizacao ? "Localização adicionada" : "Usar localização atual"}
           </button>
 
-          {data.localizacao && (
-            <div className="flex-1 bg-muted rounded-xl p-3 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground">
-                Pré-visualização do Mapa
-              </span>
+          {data.localizacao && mapaUrl && (
+            <div className="flex-1 rounded-xl border border-border bg-muted p-3 space-y-1">
+              <p className="text-xs font-medium text-card-foreground">
+                Localização capturada
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {loadingEndereco && "Obtendo endereço..."}
+                {!loadingEndereco && endereco && (
+                  <>
+                    {endereco.logradouro
+                      ? `${endereco.logradouro}, `
+                      : ""}
+                    {endereco.cidade}
+                    {endereco.uf ? ` – ${endereco.uf}` : ""}
+                  </>
+                )}
+              </p>
+              <a
+                href={mapaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                Ver no mapa
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
           )}
         </div>
       </div>
 
-      {/* Selected Files */}
+      {/* Arquivos selecionados */}
       {data.anexos.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-card-foreground tracking-wider">
@@ -201,7 +268,6 @@ export default function StepAnexos({
                   type="button"
                   onClick={() =>
                     onChange({
-                      ...data,
                       anexos: data.anexos.filter((_, i) => i !== index),
                     })
                   }

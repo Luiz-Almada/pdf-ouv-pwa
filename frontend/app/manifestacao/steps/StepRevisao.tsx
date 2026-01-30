@@ -11,7 +11,8 @@ import {
   Paperclip,
   ShieldCheck,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  User
 } from "lucide-react";
 
 type Props = {
@@ -20,11 +21,16 @@ type Props = {
     conteudo: string;
     anexos: File[];
     audioBlob: Blob | null;
+    audioMimeType: string;
     localizacao?: {
-      lat: number;
-      lng: number;
+      lat: string;
+      lng: string;
     };
     anonimo: boolean;
+    cidadao?: {
+      nome: string;
+      email: string;
+    };
   };
   onBack: () => void;
   onSuccess: (protocolo: string) => void;
@@ -50,14 +56,18 @@ export default function StepRevisao({
     }
 
     try {
+      const fileExtension = data.audioMimeType.split("/")[1] || "webm";
+      const fileName = `manifestacao.${fileExtension}`;
+
       const payload: CriarManifestacaoDTO = {
         assunto: data.assunto,
         conteudo: data.conteudo,
         anonimo: data.anonimo,
+        cidadao: data.cidadao,
         latitude: data.localizacao?.lat,
         longitude: data.localizacao?.lng,
         audio: data.audioBlob
-          ? blobToFile(data.audioBlob, "manifestacao.webm")
+          ? blobToFile(data.audioBlob, fileName)
           : undefined,
         anexos: data.anexos,
       };
@@ -92,6 +102,18 @@ export default function StepRevisao({
 
       {/* Revisão do Card */}
       <div className="bg-muted/30 border border-border rounded-xl p-5 space-y-5">
+        {/* Dados do Cidadão */}
+        {!data.anonimo && data.cidadao && (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <User className="h-3.5 w-3.5" />
+              Seus Dados
+            </div>
+            <p className="text-card-foreground font-medium">{data.cidadao.nome}</p>
+            <p className="text-sm text-muted-foreground">{data.cidadao.email}</p>
+          </div>
+        )}
+
         {/* Assunto */}
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
